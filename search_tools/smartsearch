@@ -1,0 +1,78 @@
+#!/bin/bash
+#: Title    : smartsearch
+#: Date     : 2014-11-14
+#: Author   : "John Lehr" <slo.sleuth@gmail.com>
+#: Version  : 1.0
+#: License  : GPLv2 <http://www.gnu.org/licenses/gpl-2.0.html>
+#: Desc     : Search ascii and unicode strings, skipping media files,
+#:          : decompressing common archives before searching
+#: Depends  : pdftotext
+#: Options  : None
+
+#functions
+banjo() #extract ascii (7-bit) and unicode (16-bit) strings
+{
+    tee >/dev/null >(strings -td) >(strings -td -el)
+}
+
+kws() #force color output in shell
+{
+    egrep --with-filename --label="$name" --color=always "$srch_string"
+}
+
+srch_string="$1"
+target="$2"
+
+progress()
+{
+    let counter+=1
+    printf "searching %d of %d\r" $counter $1 1>&2
+}
+
+usage()
+{
+    printf "USAGE: %s REGEX DIR\n" $0
+}
+
+#Check arguments
+if [ -z $2 ]
+then
+    usage; exit 1
+fi
+
+#global variables
+srch_string="$1"
+target="$2"
+
+#create a file list
+file_list=$(mktemp /tmp/smartsearch.XXXXXXXX)
+counter=0
+find "$target" -type f | \
+while read name
+do
+    [ $? -gt 0 ] && continue
+    let counter+=1
+    printf 'Counting files to search ... %s\r' $counter 1>&2
+    printf "%s\n" "$name" >> "$file_list"
+done
+
+#search files, skipping media files
+total=$(wc -l $file_list)
+counter=0
+find "$target" -type f | \
+while read name
+do
+    ftype=$(file -b "$name")
+    mtype=$(file -bi "$name")
+    [[ "$mtype" =~ image|audio|video ]] && continue
+    progress $total
+    case "$ftype" in
+        gzip*) zcat "$name" | banjo | kws;;
+        Zip*|*2007+) unzip -p "$name" | banjo |kws;;
+        PDF*) pdftotext | banjo | kws;;
+        *) cat "$name" | banjo | kws;;
+    esac
+done
+
+rm $file_list
+exit 0

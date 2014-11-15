@@ -1,0 +1,31 @@
+#!/bin/bash
+#: Title    : smartstrings
+#: Date     : 2014-11-14
+#: Author   : "John Lehr" <slo.sleuth@gmail.com>
+#: Version  : 1.0
+#: License  : GPLv2 <http://www.gnu.org/licenses/gpl-2.0.html>
+#: Desc     : Search ascii and unicode strings decompressing archives
+#:          : and searching within PDF.  Directories are searched
+#:          : recursively
+#: Depends  : pdftotext
+#: Options  : None
+
+#: Example  : smartstrings /home/
+
+banjo()
+{
+    tee >/dev/null >(strings -td) >(strings -td -el)
+}
+
+find "$@" -type f |
+while read i
+do
+    ftype=$(file -b "$i")
+    case "$ftype" in
+        gzip*) zcat "$i" | banjo;;
+        Zip*|*2007+) unzip -p "$i" | banjo;;
+        PDF*) pdftotext | banjo;;
+        *) cat "$i" | banjo;;
+    esac
+done
+exit

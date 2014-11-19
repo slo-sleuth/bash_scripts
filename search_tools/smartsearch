@@ -9,6 +9,8 @@
 #: Depends  : pdftotext
 #: Options  : None
 
+#: todo     : add help
+
 #functions
 banjo() #extract ascii (7-bit) and unicode (16-bit) strings
 {
@@ -20,13 +22,10 @@ kws() #force color output in shell
     egrep --with-filename --label="$name" --color=always "$srch_string"
 }
 
-srch_string="$1"
-target="$2"
-
 progress()
 {
     let counter+=1
-    printf "searching %d of %d\r" $counter $1 1>&2
+    printf "searching %d of %d files\r" $counter $1 1>&2
 }
 
 usage()
@@ -34,7 +33,11 @@ usage()
     printf "USAGE: %s REGEX DIR\n" $0
 }
 
-#Check arguments
+#read line arguments
+srch_string="$1"
+target="$2"
+
+#Check arguments, if missing, show usage
 if [ -z $2 ]
 then
     usage; exit 1
@@ -52,9 +55,10 @@ while read name
 do
     [ $? -gt 0 ] && continue
     let counter+=1
-    printf 'Counting files to search ... %s\r' $counter 1>&2
+    printf 'Counting files to search ... %d\r' $counter 1>&2
     printf "%s\n" "$name" >> "$file_list"
 done
+tput el 1>&2 #clear line for search progress output
 
 #search files, skipping media files
 total=$(wc -l $file_list)

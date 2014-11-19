@@ -73,7 +73,7 @@ do
     case "$ftype" in
         gzip*) zcat "$name" | banjo | kws;;
         Zip*|*2007+) unzip -p "$name" | banjo |kws;;
-        PDF*) pdftotext | banjo | kws;;
+        PDF*) pdftotext "$name" | kws;;
         *) cat "$name" | banjo | kws;;
     esac
 done
